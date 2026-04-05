@@ -864,10 +864,24 @@ def extract_content_string(content):
             s = val.strip()
             if not s:
                 return True
+            # Explicit whitelist of strings that represent empty values
+            # This is safer than using ast.literal_eval for arbitrary input.
+            if s in {"None", "False", "[]", "{}", "()", "0", "0.0", "0j"}:
+                return True
+            # Handle empty collection variations with spaces like "[ ]"
+            if s.startswith('[') and s.endswith(']') and not s[1:-1].strip():
+                return True
+            if s.startswith('{') and s.endswith('}') and not s[1:-1].strip():
+                return True
+            if s.startswith('(') and s.endswith(')') and not s[1:-1].strip():
+                return True
+            # Handle numeric zero variations like "0.00" or "00"
             try:
-                return not bool(ast.literal_eval(s))
-            except (ValueError, SyntaxError):
-                return False  # Can't parse = real text
+                if float(s) == 0:
+                    return True
+            except (ValueError, OverflowError):
+                pass
+            return False
         return not bool(val)
 
     if is_empty(content):
