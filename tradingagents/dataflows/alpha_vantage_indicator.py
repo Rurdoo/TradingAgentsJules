@@ -1,3 +1,5 @@
+import csv
+import io
 from .alpha_vantage_common import _make_api_request
 
 def get_indicator(
@@ -64,6 +66,7 @@ def get_indicator(
 
     curr_date_dt = datetime.strptime(curr_date, "%Y-%m-%d")
     before = curr_date_dt - relativedelta(days=look_back_days)
+    before_str = before.strftime("%Y-%m-%d")
 
     # Get the full data for the period instead of making individual calls
     _, required_series_type = supported_indicators[indicator]
@@ -150,12 +153,14 @@ def get_indicator(
             return f"Error: Indicator {indicator} not implemented yet."
 
         # Parse CSV data and extract values for the date range
-        lines = data.strip().split('\n')
-        if len(lines) < 2:
+        f = io.StringIO(data.strip())
+        reader = csv.reader(f)
+        try:
+            header = [col.strip() for col in next(reader)]
+        except StopIteration:
             return f"Error: No data returned for {indicator}"
 
         # Parse header and data
-        header = [col.strip() for col in lines[0].split(',')]
         try:
             date_col_idx = header.index('time')
         except ValueError:
@@ -181,18 +186,16 @@ def get_indicator(
                 return f"Error: Column '{target_col_name}' not found for indicator '{indicator}'. Available columns: {header}"
 
         result_data = []
-        for line in lines[1:]:
-            if not line.strip():
+        for values in reader:
+            if not values:
                 continue
-            values = line.split(',')
-            if len(values) > value_col_idx:
+            if len(values) > max(date_col_idx, value_col_idx):
                 try:
                     date_str = values[date_col_idx].strip()
-                    # Parse the date
-                    date_dt = datetime.strptime(date_str, "%Y-%m-%d")
-
-                    # Check if date is in our range
-                    if before <= date_dt <= curr_date_dt:
+                    # Use string comparison for performance since Alpha Vantage CSV dates are YYYY-MM-DD
+                    if before_str <= date_str <= curr_date:
+                        # Parse the date only for those within range
+                        date_dt = datetime.strptime(date_str, "%Y-%m-%d")
                         value = values[value_col_idx].strip()
                         result_data.append((date_dt, value))
                 except (ValueError, IndexError):
