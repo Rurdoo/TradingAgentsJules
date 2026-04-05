@@ -18,7 +18,6 @@ from rich.text import Text
 from rich.table import Table
 from collections import deque
 import time
-from rich.tree import Tree
 from rich import box
 from rich.align import Align
 from rich.rule import Rule
