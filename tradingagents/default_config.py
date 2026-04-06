@@ -13,16 +13,16 @@ DEFAULT_CONFIG = {
     "quick_think_llm": "gemini-3-flash-preview",
     "backend_url": None,
     # Provider-specific thinking configuration
-    "google_thinking_level": None,      # "high", "minimal", etc.
+    "google_thinking_level": "high",      # "high", "minimal", etc.
     "openai_reasoning_effort": None,    # "medium", "high", "low"
     "anthropic_effort": None,           # "high", "medium", "low"
     # Output language for analyst reports and final decision
     # Internal agent debate stays in English for reasoning quality
     "output_language": "English",
     # Debate and discussion settings
-    "max_debate_rounds": 1,
-    "max_risk_discuss_rounds": 1,
-    "max_recur_limit": 100,
+    "max_debate_rounds": 2,
+    "max_risk_discuss_rounds": 2,
+    "max_recur_limit": 200,
     # Data vendor configuration
     # Category-level configuration (default for all tools in category)
     "data_vendors": {
