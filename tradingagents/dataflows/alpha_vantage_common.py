@@ -16,8 +16,12 @@ def get_api_key() -> str:
 
 def format_datetime_for_api(date_input) -> str:
     """Convert various date formats to YYYYMMDDTHHMM format required by Alpha Vantage API."""
+    if not date_input:
+        return ""
     if isinstance(date_input, str):
         # If already in correct format, return as-is
+        if len(date_input) == 15 and 'T' in date_input:
+            return date_input
         if len(date_input) == 13 and 'T' in date_input:
             return date_input
         # Try to parse common date formats
