@@ -159,21 +159,21 @@ def get_stock_stats_indicators_window(
             current_dt = current_dt - relativedelta(days=1)
         
         # Build the result string
-        ind_string = ""
-        for date_str, value in date_values:
-            ind_string += f"{date_str}: {value}\n"
+        ind_string = "".join(f"{date_str}: {value}\n" for date_str, value in date_values)
         
     except Exception as e:
         print(f"Error getting bulk stockstats data: {e}")
         # Fallback to original implementation if bulk method fails
         ind_string = ""
         curr_date_dt = datetime.strptime(curr_date, "%Y-%m-%d")
+        fallback_lines = []
         while curr_date_dt >= before:
             indicator_value = get_stockstats_indicator(
                 symbol, indicator, curr_date_dt.strftime("%Y-%m-%d")
             )
-            ind_string += f"{curr_date_dt.strftime('%Y-%m-%d')}: {indicator_value}\n"
+            fallback_lines.append(f"{curr_date_dt.strftime('%Y-%m-%d')}: {indicator_value}\n")
             curr_date_dt = curr_date_dt - relativedelta(days=1)
+        ind_string = "".join(fallback_lines)
 
     result_str = (
         f"## {indicator} values from {before.strftime('%Y-%m-%d')} to {end_date}:\n\n"
