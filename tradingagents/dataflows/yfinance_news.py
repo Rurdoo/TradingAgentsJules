@@ -75,7 +75,7 @@ def get_news_yfinance(
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
         end_dt = datetime.strptime(end_date, "%Y-%m-%d")
 
-        news_str = ""
+        news_parts = []
         filtered_count = 0
 
         for article in news:
@@ -87,17 +87,18 @@ def get_news_yfinance(
                 if not (start_dt <= pub_date_naive <= end_dt + relativedelta(days=1)):
                     continue
 
-            news_str += f"### {data['title']} (source: {data['publisher']})\n"
+            news_parts.append(f"### {data['title']} (source: {data['publisher']})\n")
             if data["summary"]:
-                news_str += f"{data['summary']}\n"
+                news_parts.append(f"{data['summary']}\n")
             if data["link"]:
-                news_str += f"Link: {data['link']}\n"
-            news_str += "\n"
+                news_parts.append(f"Link: {data['link']}\n")
+            news_parts.append("\n")
             filtered_count += 1
 
         if filtered_count == 0:
             return f"No news found for {ticker} between {start_date} and {end_date}"
 
+        news_str = "".join(news_parts)
         return f"## {ticker} News, from {start_date} to {end_date}:\n\n{news_str}"
 
     except Exception as e:
@@ -164,7 +165,7 @@ def get_global_news_yfinance(
         start_dt = curr_dt - relativedelta(days=look_back_days)
         start_date = start_dt.strftime("%Y-%m-%d")
 
-        news_str = ""
+        news_parts = []
         for article in all_news[:limit]:
             # Handle both flat and nested structures
             if "content" in article:
@@ -184,13 +185,14 @@ def get_global_news_yfinance(
                 link = article.get("link", "")
                 summary = ""
 
-            news_str += f"### {title} (source: {publisher})\n"
+            news_parts.append(f"### {title} (source: {publisher})\n")
             if summary:
-                news_str += f"{summary}\n"
+                news_parts.append(f"{summary}\n")
             if link:
-                news_str += f"Link: {link}\n"
-            news_str += "\n"
+                news_parts.append(f"Link: {link}\n")
+            news_parts.append("\n")
 
+        news_str = "".join(news_parts)
         return f"## Global Market News, from {start_date} to {curr_date}:\n\n{news_str}"
 
     except Exception as e:
