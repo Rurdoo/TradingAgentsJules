@@ -1,7 +1,10 @@
 import unittest
 import pandas as pd
 import numpy as np
-from tradingagents.dataflows.stockstats_utils import _clean_dataframe
+from unittest.mock import patch, MagicMock
+from yfinance.exceptions import YFRateLimitError
+
+from tradingagents.dataflows.stockstats_utils import _clean_dataframe, yf_retry
 
 class TestStockstatsUtils(unittest.TestCase):
     def test_clean_dataframe_nan_inf(self):
@@ -57,6 +60,48 @@ class TestStockstatsUtils(unittest.TestCase):
         self.assertEqual(len(cleaned_df), 2)
         self.assertEqual(cleaned_df["Date"].dt.strftime("%Y-%m-%d").tolist(), ["2023-01-01", "2023-01-03"])
         self.assertEqual(cleaned_df["Close"].tolist(), [10.0, 12.0])
+
+class TestYFRetry(unittest.TestCase):
+
+    def test_yf_retry_success_first_try(self):
+        func = MagicMock(return_value="success")
+        result = yf_retry(func, max_retries=3, base_delay=2.0)
+
+        self.assertEqual(result, "success")
+        self.assertEqual(func.call_count, 1)
+
+    @patch("time.sleep")
+    def test_yf_retry_success_after_retries(self, mock_sleep):
+        func = MagicMock(side_effect=[YFRateLimitError(), YFRateLimitError(), "success"])
+        result = yf_retry(func, max_retries=3, base_delay=2.0)
+
+        self.assertEqual(result, "success")
+        self.assertEqual(func.call_count, 3)
+        self.assertEqual(mock_sleep.call_count, 2)
+        # Check sleep delays: 2.0 * (2**0) = 2.0, 2.0 * (2**1) = 4.0
+        mock_sleep.assert_any_call(2.0)
+        mock_sleep.assert_any_call(4.0)
+
+    @patch("time.sleep")
+    def test_yf_retry_failure_max_retries(self, mock_sleep):
+        func = MagicMock(side_effect=YFRateLimitError())
+
+        with self.assertRaises(YFRateLimitError):
+            yf_retry(func, max_retries=3, base_delay=2.0)
+
+        self.assertEqual(func.call_count, 4) # initial + 3 retries
+        self.assertEqual(mock_sleep.call_count, 3)
+        mock_sleep.assert_any_call(2.0)
+        mock_sleep.assert_any_call(4.0)
+        mock_sleep.assert_any_call(8.0)
+
+    def test_yf_retry_other_exception(self):
+        func = MagicMock(side_effect=ValueError("other error"))
+
+        with self.assertRaises(ValueError):
+            yf_retry(func, max_retries=3, base_delay=2.0)
+
+        self.assertEqual(func.call_count, 1)
 
 if __name__ == "__main__":
     unittest.main()
