@@ -3,6 +3,7 @@
 import yfinance as yf
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .stockstats_utils import yf_retry
 
@@ -132,29 +133,46 @@ def get_global_news_yfinance(
     seen_titles = set()
 
     try:
-        for query in search_queries:
-            search = yf_retry(lambda q=query: yf.Search(
-                query=q,
-                news_count=limit,
-                enable_fuzzy_query=True,
-            ))
+        # Default max_workers to length of queries or 1 to prevent 0 workers error
+        max_workers = len(search_queries) if search_queries else 1
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_query = {
+                executor.submit(
+                    yf_retry,
+                    lambda q=query: yf.Search(
+                        query=q,
+                        news_count=limit,
+                        enable_fuzzy_query=True,
+                    )
+                ): query for query in search_queries
+            }
 
-            if search.news:
-                for article in search.news:
-                    # Handle both flat and nested structures
-                    if "content" in article:
-                        data = _extract_article_data(article)
-                        title = data["title"]
-                    else:
-                        title = article.get("title", "")
+            for future in as_completed(future_to_query):
+                try:
+                    search = future.result()
+                    if search and search.news:
+                        for article in search.news:
+                            # Handle both flat and nested structures
+                            if "content" in article:
+                                data = _extract_article_data(article)
+                                title = data["title"]
+                            else:
+                                title = article.get("title", "")
 
-                    # Deduplicate by title
-                    if title and title not in seen_titles:
-                        seen_titles.add(title)
-                        all_news.append(article)
+                            # Deduplicate by title
+                            if title and title not in seen_titles:
+                                seen_titles.add(title)
+                                all_news.append(article)
 
-            if len(all_news) >= limit:
-                break
+                            if len(all_news) >= limit:
+                                break
+                except Exception as e:
+                    # Log or ignore fetch/parse errors for this query
+                    print(f"Error fetching global news query: {e}")
+                    pass
+
+                if len(all_news) >= limit:
+                    break
 
         if not all_news:
             return f"No global news found for {curr_date}"
