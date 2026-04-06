@@ -109,15 +109,20 @@ class TradingAgentsGraph:
             max_debate_rounds=self.config["max_debate_rounds"],
             max_risk_discuss_rounds=self.config["max_risk_discuss_rounds"],
         )
+
+        memories = {
+            "bull": self.bull_memory,
+            "bear": self.bear_memory,
+            "trader": self.trader_memory,
+            "invest_judge": self.invest_judge_memory,
+            "portfolio_manager": self.portfolio_manager_memory,
+        }
+
         self.graph_setup = GraphSetup(
             self.quick_thinking_llm,
             self.deep_thinking_llm,
             self.tool_nodes,
-            self.bull_memory,
-            self.bear_memory,
-            self.trader_memory,
-            self.invest_judge_memory,
-            self.portfolio_manager_memory,
+            memories,
             self.conditional_logic,
         )
 
