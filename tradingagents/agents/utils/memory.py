@@ -9,6 +9,9 @@ from typing import List, Tuple
 import re
 
 
+_TOKEN_REGEX = re.compile(r'\b\w+\b')
+
+
 class FinancialSituationMemory:
     """Memory system for storing and retrieving financial situations using BM25."""
 
@@ -30,7 +33,7 @@ class FinancialSituationMemory:
         Simple whitespace + punctuation tokenization with lowercasing.
         """
         # Lowercase and split on non-alphanumeric characters
-        tokens = re.findall(r'\b\w+\b', text.lower())
+        tokens = _TOKEN_REGEX.findall(text.lower())
         return tokens
 
     def _rebuild_index(self):
